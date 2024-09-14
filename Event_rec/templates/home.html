@@ -1,0 +1,123 @@
+{% extends "base.html" %} {% block title %}Home - EventHub{% endblock %} {%
+block content %}
+<div class="container mt-5">
+  <!-- Add Event Button (Only for Admins) -->
+  {% if is_admin %}
+  <div class="d-flex justify-content-end mb-4">
+    <a href="{{ url_for('add_event') }}" class="btn btn-primary"
+      >Add New Event</a
+    >
+  </div>
+  {% endif %}
+
+  <!-- Upcoming Events -->
+  <h2>Upcoming Events</h2>
+  <div class="row">
+    {% for event in upcoming_events %}
+    <div class="col-md-4 mb-4">
+      <div class="card h-100">
+        {% if event.image_url %}
+        <img
+          src="{{ event.image_url }}"
+          class="card-img-top"
+          alt="{{ event.title }}"
+        />
+        {% endif %}
+        <div class="card-body d-flex flex-column">
+          <h5 class="card-title">{{ event.title }}</h5>
+          <p class="card-text">{{ event.description }}</p>
+          <p class="card-text">
+            <small class="text-muted">Organizer: {{ event.organizer }}</small>
+          </p>
+          <p class="card-text">
+            <small class="text-muted">Date: {{ event.date }}</small>
+          </p>
+          <p class="card-text">
+            <small class="text-muted">Category: {{ event.category }}</small>
+          </p>
+          <a
+            href="{{ url_for('event_detail', event_id=event['id']) }}"
+            class="btn btn-primary mt-auto"
+            >More Info</a
+          >
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+
+  <!-- Recently Completed Events -->
+  <h2>Recently Completed Events</h2>
+  <div class="row">
+    {% for event in completed_events %}
+    <div class="col-md-4 mb-4">
+      <div class="card h-100">
+        {% if event.image_url %}
+        <img
+          src="{{ event.image_url }}"
+          class="card-img-top"
+          alt="{{ event.title }}"
+        />
+        {% endif %}
+        <div class="card-body d-flex flex-column">
+          <h5 class="card-title">{{ event.title }}</h5>
+          <p class="card-text">{{ event.description }}</p>
+          <p class="card-text">
+            <small class="text-muted">Organizer: {{ event.organizer }}</small>
+          </p>
+          <p class="card-text">
+            <small class="text-muted">Date: {{ event.date }}</small>
+          </p>
+          <p class="card-text">
+            <small class="text-muted">Category: {{ event.category }}</small>
+          </p>
+          <a
+            href="{{ url_for('event_detail', event_id=event['id']) }}"
+            class="btn btn-primary mt-auto"
+            >More Info</a
+          >
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+
+  <!-- Participated Events (Only for Regular Users) -->
+  {% if not is_admin %}
+  <h2>Your Participated Events</h2>
+  <div class="row">
+    {% for event in participated_events %}
+    <div class="col-md-4 mb-4">
+      <div class="card h-100">
+        {% if event.image_url %}
+        <img
+          src="{{ event.image_url }}"
+          class="card-img-top"
+          alt="{{ event.title }}"
+        />
+        {% endif %}
+        <div class="card-body d-flex flex-column">
+          <h5 class="card-title">{{ event.title }}</h5>
+          <p class="card-text">{{ event.description }}</p>
+          <p class="card-text">
+            <small class="text-muted">Organizer: {{ event.organizer }}</small>
+          </p>
+          <p class="card-text">
+            <small class="text-muted">Date: {{ event.date }}</small>
+          </p>
+          <p class="card-text">
+            <small class="text-muted">Category: {{ event.category }}</small>
+          </p>
+          <a
+            href="{{ url_for('event_detail', event_id=event['id']) }}"
+            class="btn btn-primary mt-auto"
+            >More Info</a
+          >
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

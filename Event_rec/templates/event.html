@@ -1,0 +1,143 @@
+{% extends "base.html" %} {% block title %}Event Details - EventHub{% endblock
+%} {% block content %}
+<div class="container">
+  <!-- Event Header Section -->
+  <div class="row my-5">
+    <div class="col-md-6">
+      <h1>{{ event['name'] }}</h1>
+      <p><strong>Date:</strong> {{ event['date'] }}</p>
+      <p><strong>Description:</strong> {{ event['description'] }}</p>
+      <p><strong>Organizer:</strong> {{ event['organizer'] }}</p>
+      <p><strong>Category:</strong> {{ event['category'] }}</p>
+    </div>
+    <div class="col-md-6">
+      <!-- Event Image -->
+      <img
+        src="{{ event['image_url'] or url_for('static', filename='images/default_event.jpg') }}"
+        alt="{{ event['name'] }}"
+        class="img-fluid"
+      />
+    </div>
+  </div>
+
+  <!-- Button Section -->
+  <div class="d-flex justify-content-between my-3">
+    <!-- Participate Button (Only for Regular Users) -->
+    {% if not is_completed and not is_admin %}
+    <button
+      type="button"
+      class="btn btn-primary"
+      data-toggle="modal"
+      data-target="#participateModal"
+      {%
+      if
+      is_participated
+      %}disabled{%
+      endif
+      %}
+    >
+      {% if is_participated %} Already Participated {% else %} Participate {%
+      endif %}
+    </button>
+    {% endif %}
+
+    <!-- Back Button -->
+    <a href="{{ url_for('home') }}" class="btn btn-secondary">Back to Events</a>
+  </div>
+
+  <!-- Modal for Participation -->
+  <div
+    class="modal fade"
+    id="participateModal"
+    tabindex="-1"
+    role="dialog"
+    aria-labelledby="participateModalLabel"
+    aria-hidden="true"
+  >
+    <div class="modal-dialog" role="document">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="participateModalLabel">
+            Register for Event
+          </h5>
+          <button
+            type="button"
+            class="close"
+            data-dismiss="modal"
+            aria-label="Close"
+          >
+            <span aria-hidden="true">&times;</span>
+          </button>
+        </div>
+        <div class="modal-body">
+          <form
+            id="participateForm"
+            method="POST"
+            action="{{ url_for('register_for_event', event_id=event['id']) }}"
+          >
+            <div class="form-group">
+              <label for="username">Username</label>
+              <input
+                type="text"
+                class="form-control"
+                id="username"
+                name="username"
+                value="{{ user['username'] }}"
+                readonly
+              />
+            </div>
+            <div class="form-group">
+              <label for="email">Email</label>
+              <input
+                type="email"
+                class="form-control"
+                id="email"
+                name="email"
+                placeholder="Enter your email"
+                required
+              />
+            </div>
+            <button type="submit" class="btn btn-success">Register</button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Toast Notification -->
+<div class="toast-container position-fixed bottom-0 end-0 p-3">
+  <div
+    id="participationToast"
+    class="toast"
+    role="alert"
+    aria-live="assertive"
+    aria-atomic="true"
+    data-delay="5000"
+    style="display: none"
+  >
+    <div class="toast-header">
+      <strong class="mr-auto">EventHub</strong>
+      <small>Just now</small>
+      <button
+        type="button"
+        class="ml-2 mb-1 close"
+        data-dismiss="toast"
+        aria-label="Close"
+      >
+        <span aria-hidden="true">&times;</span>
+      </button>
+    </div>
+    <div class="toast-body">Successfully registered for the event!</div>
+  </div>
+</div>
+
+{% block scripts %}
+<script>
+  $(document).ready(function() {
+    {% if registered %}
+      $('#participationToast').toast('show');
+    {% endif %}
+  });
+</script>
+{% endblock %} {% endblock %}

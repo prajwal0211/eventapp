@@ -1,0 +1,57 @@
+{% extends "base.html" %} {% block title %}Add Event - EventHub{% endblock %} {%
+block content %}
+<div class="container mt-5">
+  <h2>Add New Event</h2>
+  <form method="POST" action="{{ url_for('add_event') }}">
+    <div class="form-group">
+      <label for="title">Event Title</label>
+      <input
+        type="text"
+        class="form-control"
+        id="title"
+        name="title"
+        required
+      />
+    </div>
+    <div class="form-group">
+      <label for="description">Description</label>
+      <textarea
+        class="form-control"
+        id="description"
+        name="description"
+        rows="3"
+        required
+      ></textarea>
+    </div>
+    <div class="form-group">
+      <label for="date">Date</label>
+      <input type="date" class="form-control" id="date" name="date" required />
+    </div>
+    <div class="form-group">
+      <label for="organizer">Organizer</label>
+      <input
+        type="text"
+        class="form-control"
+        id="organizer"
+        name="organizer"
+        required
+      />
+    </div>
+    <div class="form-group">
+      <label for="category">Category</label>
+      <input
+        type="text"
+        class="form-control"
+        id="category"
+        name="category"
+        required
+      />
+    </div>
+    <div class="form-group">
+      <label for="image_url">Image URL (Optional)</label>
+      <input type="text" class="form-control" id="image_url" name="image_url" />
+    </div>
+    <button type="submit" class="btn btn-primary">Add Event</button>
+  </form>
+</div>
+{% endblock %}
