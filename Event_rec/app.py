@@ -146,12 +146,23 @@ def home():
     conn.row_factory = sqlite3.Row  # This allows row access by column name
     c = conn.cursor()
 
-    # Fetch upcoming events
-    c.execute("SELECT * FROM events WHERE date >= DATE('now') ORDER BY date ASC")
+    c.execute("SELECT DISTINCT category FROM events")
+    categories = [row['category'] for row in c.fetchall()]
+
+    selected_category = request.args.get('category')
+
+    # Modify the query to filter by category if selected
+    if selected_category:
+        c.execute("SELECT * FROM events WHERE date >= DATE('now') AND category = ? ORDER BY date ASC", (selected_category,))
+    else:
+        c.execute("SELECT * FROM events WHERE date >= DATE('now') ORDER BY date ASC")
     upcoming_events = [dict(row) for row in c.fetchall()]
 
-    # Fetch recently completed events
-    c.execute("SELECT * FROM events WHERE date < DATE('now') ORDER BY date DESC")
+     # Fetch recently completed events
+    if selected_category:
+        c.execute("SELECT * FROM events WHERE date < DATE('now') AND category = ? ORDER BY date DESC", (selected_category,))
+    else:
+        c.execute("SELECT * FROM events WHERE date < DATE('now') ORDER BY date DESC")
     completed_events = [dict(row) for row in c.fetchall()]
 
     # Fetch participated events if applicable
@@ -175,7 +186,7 @@ def home():
         participated_events = []
 
     conn.close()
-    return render_template('home.html', upcoming_events=upcoming_events, completed_events=completed_events, participated_events=participated_events,user_id=user_id,is_admin=is_admin)
+    return render_template('home.html', upcoming_events=upcoming_events, completed_events=completed_events, participated_events=participated_events,categories=categories,selected_category=selected_category,user_id=user_id,is_admin=is_admin)
 
 @app.route('/add_event', methods=['GET', 'POST'])
 def add_event():

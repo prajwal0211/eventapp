@@ -10,6 +10,26 @@ block content %}
   </div>
   {% endif %}
 
+    <!-- Search by Category Form -->
+    <form method="GET" action="{{ url_for('home') }}" class="mb-4">
+      <div class="row">
+        <div class="col-md-6">
+          <select name="category" class="form-control">
+            <option value="">-- Select Category --</option>
+            <!-- Add categories dynamically -->
+            {% for category in categories %}
+            <option value="{{ category }}" {% if request.args.get('category') == category %}selected{% endif %}>
+              {{ category }}
+            </option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-md-2">
+          <button type="submit" class="btn btn-primary">Search</button>
+        </div>
+      </div>
+    </form>  
+
   <!-- Upcoming Events -->
   <h2>Upcoming Events</h2>
   <div class="row">
