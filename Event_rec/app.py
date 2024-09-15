@@ -2,6 +2,8 @@ from flask import Flask, render_template, request, redirect, url_for, session, f
 import sqlite3
 from utils import hash_password  # Import from utils.py
 from datetime import datetime
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.metrics.pairwise import cosine_similarity
 
 app = Flask(__name__)
 app.secret_key = 'your_secret_key_here'  # Make sure to set a strong secret key
@@ -282,6 +284,89 @@ def register_for_event(event_id):
     session['registered'] = True
 
     return redirect(url_for('event_detail', event_id=event_id))
+
+@app.route('/recommendations')
+def recommendations():
+    user_id = session.get('user_id')
+    if not user_id:
+        flash("You need to be logged in to see recommendations.")
+        return redirect(url_for('login'))
+
+    recommended_events = recommend_events(user_id)
+    return render_template('recommendations.html', recommended_events=recommended_events)
+
+def calculate_similarity(text1, text2):
+    vectorizer = TfidfVectorizer().fit_transform([text1, text2])
+    vectors = vectorizer.toarray()
+    similarity = cosine_similarity([vectors[0]], [vectors[1]])
+    return similarity[0][0]
+
+def recommend_events(user_id):
+    conn = sqlite3.connect('database/events.db')
+    c = conn.cursor()
+
+    # Fetch the user's interests
+    c.execute("SELECT interests FROM users WHERE id=?", (user_id,))
+    result = c.fetchone()
+
+    if result is None:
+        # Handle case where the user is not found or has no interests
+        flash("No interests found for the user.")
+        return []
+
+    user_interests = result[0]
+
+    # Fetch all events
+    c.execute("SELECT id, title, description, image_url, organizer, date, category FROM events")
+    all_events = c.fetchall()
+
+    # Threshold for similarity
+    similarity_threshold = 0.2
+    recommended_events = {}
+
+    c.execute("SELECT event_id FROM participation WHERE user_id=?", (user_id,))
+    past_participation = [row[0] for row in c.fetchall()]
+
+    for event in all_events:
+        event_id, title, description, image_url, organizer, date, category = event
+        event_text = f"{title} "
+
+        # Calculate similarity between interests and event text
+        similarity = calculate_similarity(user_interests, event_text)
+
+        # If similarity is above threshold, add or update the event in the recommendations
+        if similarity >= similarity_threshold:
+            if event_id not in recommended_events:
+                recommended_events[event_id] = {
+                    'id': event_id,
+                    'title': title,
+                    'description': description,
+                    'image_url': image_url,
+                    'organizer': organizer,
+                    'date': date,
+                    'category': category
+                }
+
+        # If the event was attended before, prioritize it
+        if event_id in past_participation:
+            if event_id not in recommended_events:
+                recommended_events[event_id] = {
+                    'id': event_id,
+                    'title': title,
+                    'description': description,
+                    'image_url': image_url,
+                    'organizer': organizer,
+                    'date': date,
+                    'category': category
+                }
+
+    # Convert dictionary to list and sort by date
+    recommended_events_list = list(recommended_events.values())
+    recommended_events_list.sort(key=lambda x: x['date'])
+
+    conn.close()
+
+    return recommended_events_list
 
 if __name__ == '__main__':
     init_db()
