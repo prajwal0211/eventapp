@@ -217,11 +217,12 @@ def add_event():
 
     return render_template('add_event.html')
 
-@app.route('/event/<int:event_id>')
+@app.route('/event/<int:event_id>', methods=['GET', 'POST'])
 def event_detail(event_id):
     conn = sqlite3.connect('database/events.db')
     conn.row_factory = sqlite3.Row  # Access rows as dictionaries
     is_admin = False
+    feedback_submitted = False
 
     c = conn.cursor()
 
@@ -229,11 +230,16 @@ def event_detail(event_id):
     c.execute("SELECT * FROM events WHERE id = ?", (event_id,))
     event = c.fetchone()
 
+    if not event:
+        conn.close()
+        return "Event not found", 404
+
     current_date = datetime.now().strftime('%Y-%m-%d')
     is_completed = event['date'] < current_date
 
     # Get the logged-in user's details
     user_id = session.get('user_id')
+    user = None
     if user_id:
         c.execute("SELECT * FROM users WHERE id = ?", (user_id,))
         user = c.fetchone()
@@ -241,23 +247,40 @@ def event_detail(event_id):
         if user and user['is_admin'] == 1:
             is_admin = True
 
-    else:
-        user = None
+        # Check if feedback has been submitted for this event
+        c.execute("SELECT * FROM feedback WHERE user_id = ? AND event_id = ?", (user_id, event_id))
+        feedback_submitted = bool(c.fetchone())
 
     is_participated = False
     if user_id:
         c.execute("SELECT * FROM participation WHERE user_id = ? AND event_id = ?", (user_id, event_id))
         is_participated = bool(c.fetchone())
-    
+
+    # Fetch feedback for the event (only for admin)
+    feedback_list = []
+    if is_admin:
+        c.execute("""
+            SELECT f.*, u.username 
+            FROM feedback f
+            JOIN users u ON f.user_id = u.id
+            WHERE f.event_id = ?
+        """, (event_id,))
+        feedback_list = c.fetchall()
+
     conn.close()
 
     registered = session.pop('registered', False)
 
-    if event:
-        return render_template('event.html', event=dict(event),is_participated=is_participated,is_completed=is_completed, user=dict(user) if user else None,  registered=registered,is_admin=is_admin)
-    else:
-        return "Event not found", 404
-    
+    return render_template('event.html', 
+                           event=dict(event), 
+                           is_participated=is_participated, 
+                           is_completed=is_completed, 
+                           user=dict(user) if user else None,  
+                           registered=registered, 
+                           is_admin=is_admin, 
+                           feedback_submitted=feedback_submitted, 
+                           feedback_list=feedback_list)
+ 
 @app.route('/register_for_event/<int:event_id>', methods=['POST'])
 def register_for_event(event_id):
     user_id = session.get('user_id')
@@ -367,6 +390,77 @@ def recommend_events(user_id):
     conn.close()
 
     return recommended_events_list
+
+from flask import request, redirect, url_for
+
+@app.route('/submit_feedback/<int:event_id>', methods=['POST'])
+def submit_feedback(event_id):
+    user_id = session.get('user_id')
+    if not user_id:
+        flash("You need to be logged in to submit feedback.")
+        return redirect(url_for('login'))
+
+    rating = request.form.get('rating')
+    comments = request.form.get('comments')
+
+    if not rating or not comments:
+        flash("Rating and comments are required.")
+        return redirect(url_for('event_details', event_id=event_id))
+
+    try:
+        rating = int(rating)
+        if rating < 1 or rating > 5:
+            flash("Rating must be between 1 and 5.")
+            return redirect(url_for('event_details', event_id=event_id))
+
+        conn = sqlite3.connect('database/events.db')
+        c = conn.cursor()
+
+        # Check if feedback has already been submitted
+        c.execute("SELECT * FROM feedback WHERE user_id=? AND event_id=?", (user_id, event_id))
+        if c.fetchone():
+            flash("Feedback for this event has already been submitted.")
+            conn.close()
+            return redirect(url_for('event_details', event_id=event_id))
+
+        # Insert new feedback
+        c.execute("INSERT INTO feedback (user_id, event_id, rating, comments, date) VALUES (?, ?, ?, ?, ?)",
+                  (user_id, event_id, rating, comments, datetime.now().isoformat()))
+        conn.commit()
+        conn.close()
+
+        flash("Feedback submitted successfully!")
+    except ValueError:
+        flash("Invalid input for rating.")
+
+    return redirect(url_for('event_detail', event_id=event_id))
+
+@app.route('/event_feedback/<int:event_id>')
+def event_feedback(event_id):
+    conn = sqlite3.connect('database/events.db')
+    c = conn.cursor()
+    
+    # Fetch event details
+    c.execute("SELECT * FROM events WHERE id=?", (event_id,))
+    event = c.fetchone()
+    
+    if event is None:
+        flash('Event not found.')
+        return redirect(url_for('home'))
+    
+    # Fetch feedback for the event
+    c.execute("""
+        SELECT users.username, feedback.rating, feedback.comments, feedback.date
+        FROM feedback
+        JOIN users ON feedback.user_id = users.id
+        WHERE feedback.event_id = ?
+    """, (event_id,))
+    feedback_list = c.fetchall()
+    
+    conn.close()
+    
+    return render_template('event_feedback.html', event=event, feedback_list=feedback_list)
+
 
 if __name__ == '__main__':
     init_db()

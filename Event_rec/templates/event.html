@@ -103,6 +103,66 @@
       </div>
     </div>
   </div>
+
+  <!-- Feedback Section (Only for Completed Events and Participated Users) -->
+  {% if is_completed and is_participated and not feedback_submitted %}
+  <h3>Submit Feedback</h3>
+  <form
+    method="POST"
+    action="{{ url_for('submit_feedback', event_id=event['id']) }}"
+  >
+    <div class="form-group">
+      <label for="rating">Rating (1 to 5)</label>
+      <input
+        type="number"
+        class="form-control"
+        id="rating"
+        name="rating"
+        min="1"
+        max="5"
+        required
+      />
+    </div>
+    <div class="form-group">
+      <label for="comments">Comments</label>
+      <textarea
+        class="form-control"
+        id="comments"
+        name="comments"
+        rows="3"
+        placeholder="Leave your comments here"
+      ></textarea>
+    </div>
+    <button type="submit" class="btn btn-primary">Submit Feedback</button>
+  </form>
+  {% elif feedback_submitted %}
+  <p>Thank you for your feedback!</p>
+  {% endif %}
+
+  <!-- Feedback Section (Only for Admins) -->
+  {% if is_admin %}
+  <h2>Event Feedback</h2>
+  <table class="table table-striped">
+    <thead>
+      <tr>
+        <th>Username</th>
+        <th>Rating</th>
+        <th>Comments</th>
+        <th>Date</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for feedback in feedback_list %}
+      <tr>
+        <td>{{ feedback['username'] }}</td>
+        <td>{{ feedback['rating'] }}</td>
+        <td>{{ feedback['comments'] }}</td>
+        <td>{{ feedback['date'] }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% endif %}
 </div>
 
 <!-- Toast Notification -->
